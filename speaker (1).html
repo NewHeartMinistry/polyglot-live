@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polyglot Live — Speaker</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080c14;--surface:#0d1220;--surface2:#131929;
+    --border:rgba(255,255,255,0.07);--accent:#00d4ff;
+    --accent2:#7b61ff;--text:#e8edf7;--muted:#5a6478;--live:#00ff88;--qa:#ff9f43;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
+  body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:500;}
+  body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+
+  header{padding:16px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:relative;z-index:10;flex-shrink:0;}
+  .logo{display:flex;align-items:center;gap:10px;}
+  .logo-icon{width:30px;height:30px;border:1.5px solid var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--accent);}
+  .logo h1{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;}
+  .logo span{color:var(--muted);font-weight:300;}
+  .role-badge{padding:4px 12px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;border:1px solid rgba(0,212,255,0.3);color:var(--accent);background:rgba(0,212,255,0.07);}
+
+  .main{position:relative;z-index:10;padding:20px 28px;display:flex;flex-direction:column;gap:16px;flex:1;}
+
+  /* Room card */
+  .room-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+  .room-info{flex:1;}
+  .room-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+  .room-code{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:500;letter-spacing:0.15em;color:var(--accent);text-shadow:0 0 20px rgba(0,212,255,0.3);}
+  .room-hint{font-size:12px;color:var(--muted);margin-top:4px;}
+  .room-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .copy-btn{padding:7px 16px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.06em;cursor:pointer;transition:all 0.2s;}
+  .copy-btn:hover{border-color:rgba(0,212,255,0.3);color:var(--accent);}
+  .copy-btn.copied{border-color:rgba(0,255,136,0.3);color:var(--live);}
+  #qrImg{width:80px;height:80px;border-radius:8px;}
+
+  /* Controls */
+  .controls{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;cursor:pointer;outline:none;}
+  select:focus{border-color:var(--accent);}
+  .mic-btn{display:flex;align-items:center;gap:8px;padding:9px 22px;border-radius:8px;border:1.5px solid var(--accent);background:rgba(0,212,255,0.05);color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.08em;cursor:pointer;transition:all 0.2s;}
+  .mic-btn:hover{background:rgba(0,212,255,0.12);}
+  .mic-btn.recording{background:rgba(0,255,136,0.08);border-color:var(--live);color:var(--live);box-shadow:0 0 16px rgba(0,255,136,0.15);}
+  .status-row{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--muted);transition:all 0.3s;}
+  .dot.live{background:var(--live);box-shadow:0 0 8px var(--live);animation:pulse 1.5s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+  /* Two-column layout */
+  .columns{display:grid;grid-template-columns:1fr 1fr;gap:16px;flex:1;min-height:0;}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;}
+  .panel-header{padding:12px 18px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .panel-header .badge{padding:2px 8px;border-radius:3px;font-size:9px;}
+  .badge-blue{background:rgba(0,212,255,0.12);color:var(--accent);border:1px solid rgba(0,212,255,0.2);}
+  .badge-orange{background:rgba(255,159,67,0.12);color:var(--qa);border:1px solid rgba(255,159,67,0.25);}
+
+  .panel-body{flex:1;padding:18px;overflow-y:auto;font-size:15px;line-height:1.7;}
+  .panel-body::-webkit-scrollbar{width:3px;}
+  .panel-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+  .interim{color:var(--muted);font-style:italic;}
+  .placeholder{color:var(--muted);font-size:13px;text-align:center;padding:20px 0;}
+
+  /* Q&A messages */
+  .qa-msg{background:var(--surface2);border:1px solid rgba(255,159,67,0.15);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+  .qa-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--qa);letter-spacing:0.06em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;}
+  .qa-text{font-size:14px;line-height:1.6;}
+  .qa-original{font-size:11px;color:var(--muted);font-style:italic;margin-top:5px;}
+  .qa-speak-btn{padding:3px 10px;border-radius:4px;border:1px solid rgba(255,159,67,0.3);background:transparent;color:var(--qa);font-family:'IBM Plex Mono',monospace;font-size:10px;cursor:pointer;transition:all 0.2s;}
+  .qa-speak-btn:hover{background:rgba(255,159,67,0.1);}
+
+  .waveform{display:flex;align-items:center;gap:2px;height:14px;}
+  .wave-bar{width:2px;border-radius:2px;background:var(--live);animation:wave 0.8s ease-in-out infinite;transform-origin:bottom;}
+  .wave-bar:nth-child(1){animation-delay:0s;height:5px}.wave-bar:nth-child(2){animation-delay:0.1s;height:10px}.wave-bar:nth-child(3){animation-delay:0.2s;height:14px}.wave-bar:nth-child(4){animation-delay:0.1s;height:8px}.wave-bar:nth-child(5){animation-delay:0s;height:4px}
+  @keyframes wave{0%,100%{transform:scaleY(0.4);opacity:0.5}50%{transform:scaleY(1);opacity:1}}
+
+  .relay-dot{width:5px;height:5px;border-radius:50%;background:var(--muted);}
+  .relay-dot.ok{background:var(--live);}
+  .relay-dot.err{background:#ff5555;}
+
+  .new-badge{display:inline-block;background:var(--qa);color:#000;font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 6px;border-radius:3px;letter-spacing:0.06em;animation:fadein 0.3s ease;}
+  @keyframes fadein{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">⬡</div>
+    <h1>POLYGLOT <span>// LIVE</span></h1>
+  </div>
+  <div class="role-badge">🎙 Speaker</div>
+</header>
+
+<div class="main">
+  <!-- Room -->
+  <div class="room-card">
+    <div class="room-info">
+      <div class="room-label">Room Code</div>
+      <div class="room-code" id="roomCode">--------</div>
+      <div class="room-hint">Share with audience — they open audience.html and enter this code</div>
+    </div>
+    <div class="room-actions">
+      <button class="copy-btn" onclick="copyCode(this)">📋 Copy Code</button>
+      <button class="copy-btn" onclick="copyLink(this)">🔗 Copy Audience Link</button>
+      <img id="qrImg" src="" alt="QR" style="display:none">
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <label>Speaking in</label>
+    <select id="sourceLang">
+      <option value="en">English</option>
+      <option value="es">Spanish</option>
+      <option value="fr">French</option>
+      <option value="de">German</option>
+      <option value="zh-CN">Mandarin</option>
+      <option value="ja">Japanese</option>
+      <option value="pt">Portuguese</option>
+      <option value="ru">Russian</option>
+      <option value="ar">Arabic</option>
+      <option value="vi">Vietnamese</option>
+      <option value="ko">Korean</option>
+      <option value="hi">Hindi</option>
+    </select>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;">
+      <div class="status-row">
+        <div class="dot" id="liveDot"></div>
+        <span id="statusText">STANDBY</span>
+        <div class="relay-dot" id="relayDot"></div>
+        <span id="relayText">RELAY —</span>
+      </div>
+      <button class="mic-btn" id="micBtn" onclick="toggleRecording()">⏺ START SPEAKING</button>
+    </div>
+  </div>
+
+  <!-- Two columns: My transcript | Audience Q&A -->
+  <div class="columns">
+    <!-- Speaker transcript -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>My Live Transcript</span>
+        <div id="waveformWrap" style="display:none">
+          <div class="waveform"><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div></div>
+        </div>
+        <div class="badge badge-blue">SPEAKER</div>
+      </div>
+      <div class="panel-body" id="transcriptBody">
+        <div class="placeholder">🎙 Press START SPEAKING then talk. Audience will receive real-time translations.</div>
+      </div>
+    </div>
+
+    <!-- Audience Q&A -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Audience Questions</span>
+        <span id="qaNewBadge" style="display:none"><span class="new-badge">NEW</span></span>
+        <div class="badge badge-orange">Q&amp;A</div>
+      </div>
+      <div class="panel-body" id="qaBody">
+        <div class="placeholder" id="qaPlaceholder">👥 Audience questions will appear here, already translated into your language.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Room ──
+function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<8;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+let roomCode = localStorage.getItem('polyglot-room') || genCode();
+localStorage.setItem('polyglot-room', roomCode);
+document.getElementById('roomCode').textContent = roomCode;
+
+const audienceURL = window.location.href.replace('speaker.html','audience.html') + '?room=' + roomCode;
+const qrImg = document.getElementById('qrImg');
+qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?data=' + encodeURIComponent(audienceURL) + '&size=80x80&bgcolor=0d1220&color=00d4ff&margin=6';
+qrImg.style.display = 'block';
+
+function copyCode(btn){navigator.clipboard.writeText(roomCode);btn.textContent='✓ Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copy Code';btn.classList.remove('copied');},2000);}
+function copyLink(btn){navigator.clipboard.writeText(audienceURL);btn.textContent='✓ Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='🔗 Copy Audience Link';btn.classList.remove('copied');},2000);}
+
+// ── Speech recognition ──
+let recognition=null,isRecording=false,finalTranscript='',publishDebounce=null,lastPublished='';
+
+function toggleRecording(){isRecording?stopRecording():startRecording();}
+
+function startRecording(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('Speech recognition requires Chrome or Edge.');return;}
+  recognition=new SR();
+  recognition.lang=document.getElementById('sourceLang').value;
+  recognition.continuous=true;recognition.interimResults=true;
+  recognition.onstart=()=>{
+    isRecording=true;
+    document.getElementById('micBtn').className='mic-btn recording';
+    document.getElementById('micBtn').innerHTML='⏹ STOP SPEAKING';
+    document.getElementById('liveDot').classList.add('live');
+    document.getElementById('statusText').textContent='LIVE';
+    document.getElementById('waveformWrap').style.display='block';
+  };
+  recognition.onresult=(e)=>{
+    let interim='';finalTranscript='';
+    for(let i=0;i<e.results.length;i++){
+      if(e.results[i].isFinal)finalTranscript+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
+    }
+    updateTranscript(finalTranscript,interim);
+    if(finalTranscript&&finalTranscript!==lastPublished){
+      clearTimeout(publishDebounce);
+      publishDebounce=setTimeout(()=>{publishTranscript(finalTranscript);lastPublished=finalTranscript;},500);
+    }
+  };
+  recognition.onerror=(e)=>{if(e.error!=='no-speech')console.error(e.error);};
+  recognition.onend=()=>{if(isRecording)try{recognition.start();}catch(e){}};
+  recognition.start();
+}
+
+function stopRecording(){
+  isRecording=false;if(recognition)recognition.stop();
+  document.getElementById('micBtn').className='mic-btn';
+  document.getElementById('micBtn').innerHTML='⏺ START SPEAKING';
+  document.getElementById('liveDot').classList.remove('live');
+  document.getElementById('statusText').textContent='STANDBY';
+  document.getElementById('waveformWrap').style.display='none';
+}
+
+function updateTranscript(final,interim){
+  const body=document.getElementById('transcriptBody');
+  let html=final?'<span>'+esc(final)+'</span>':'';
+  if(interim)html+='<span class="interim"> '+esc(interim)+'</span>';
+  body.innerHTML=html||'<div class="placeholder">🎙 Speak now...</div>';
+  body.scrollTop=body.scrollHeight;
+}
+
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── Publish speaker transcript via ntfy ──
+const TOPIC='polyglot-'+roomCode.toLowerCase();
+const QA_TOPIC='polyglot-'+roomCode.toLowerCase()+'-qa';
+
+async function publishTranscript(text){
+  const srcLang=document.getElementById('sourceLang').value;
+  const payload=JSON.stringify({text,sourceLang:srcLang,ts:Date.now(),type:'transcript'});
+  try{
+    const res=await fetch('https://ntfy.sh/'+TOPIC,{method:'POST',headers:{'Content-Type':'application/json','Title':'transcript'},body:payload});
+    const ok=res.ok;
+    document.getElementById('relayDot').className='relay-dot '+(ok?'ok':'err');
+    document.getElementById('relayText').textContent=ok?'RELAY ✓':'RELAY ✗';
+  }catch(e){
+    document.getElementById('relayDot').className='relay-dot err';
+    document.getElementById('relayText').textContent='RELAY ✗';
+  }
+}
+
+// ── Listen for audience Q&A ──
+let qaEventSource=null;
+function startQAListener(){
+  qaEventSource=new EventSource('https://ntfy.sh/'+QA_TOPIC+'/sse');
+  qaEventSource.addEventListener('message',(e)=>{
+    try{
+      const msg=JSON.parse(e.data);
+      const payload=msg.message?JSON.parse(msg.message):msg;
+      if(payload.type==='qa'&&payload.translatedText) showQAMessage(payload);
+    }catch(err){}
+  });
+}
+startQAListener();
+
+let qaCount=0;
+function showQAMessage(payload){
+  document.getElementById('qaPlaceholder')?.remove();
+  qaCount++;
+  const body=document.getElementById('qaBody');
+  const div=document.createElement('div');
+  div.className='qa-msg';
+  div.innerHTML=
+    '<div class="qa-meta">'+
+      '<span>👤 '+(payload.fromLang||'Audience').toUpperCase()+' → YOU</span>'+
+      '<button class="qa-speak-btn" onclick="speakQA(this, \''+esc(payload.translatedText)+'\', \''+payload.speakerLang+'\')">▶ SPEAK</button>'+
+    '</div>'+
+    '<div class="qa-text">'+esc(payload.translatedText)+'</div>'+
+    (payload.originalText?'<div class="qa-original">Original: "'+esc(payload.originalText)+'"</div>':'');
+  body.prepend(div);
+
+  // Flash NEW badge
+  const badge=document.getElementById('qaNewBadge');
+  badge.style.display='inline';
+  setTimeout(()=>badge.style.display='none',4000);
+}
+
+function speakQA(btn, text, lang){
+  window.speechSynthesis.cancel();
+  const utter=new SpeechSynthesisUtterance(text);
+  utter.lang=lang||'en';utter.rate=0.95;
+  const voices=window.speechSynthesis.getVoices();
+  const match=voices.find(v=>v.lang.startsWith((lang||'en').split('-')[0]));
+  if(match)utter.voice=match;
+  btn.textContent='▶ PLAYING...';
+  utter.onend=()=>btn.textContent='▶ SPEAK';
+  utter.onerror=()=>btn.textContent='▶ SPEAK';
+  window.speechSynthesis.speak(utter);
+}
+
+window.speechSynthesis.getVoices();
+window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+</script>
+</body>
+</html>
