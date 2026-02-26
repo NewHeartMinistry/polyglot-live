@@ -877,14 +877,77 @@ function escapeHtml(text) {
   return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// Translate using free MyMemory API (no key needed, works from any browser/device)
+// ── Translation engine ───────────────────────────────
+// Uses MyMemory with retry + fallback to Google Translate unofficial endpoint.
+// Requests are staggered (not all parallel) to avoid rate limiting.
+
+const translationCache = {};
+
+async function fetchMyMemory(text, from, to) {
+  const targetCode = to === 'zh' ? 'zh-CN' : to;
+  const langpair = from + '|' + targetCode;
+  const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=' + encodeURIComponent(langpair);
+  const res = await fetch(url);
+  const data = await res.json();
+  // MyMemory returns 429 or quota messages inside responseStatus
+  if (data.responseStatus === 200 && data.responseData.translatedText &&
+      !data.responseData.translatedText.toLowerCase().includes('mymemory')) {
+    return data.responseData.translatedText;
+  }
+  return null;
+}
+
+async function fetchGoogleFree(text, from, to) {
+  // Unofficial Google Translate endpoint — no key needed, works reliably
+  const targetCode = to === 'zh' ? 'zh-CN' : to;
+  const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=' +
+    encodeURIComponent(from) + '&tl=' + encodeURIComponent(targetCode) +
+    '&dt=t&q=' + encodeURIComponent(text);
+  const res = await fetch(url);
+  const data = await res.json();
+  // Response is nested arrays: [[["translated","original",...],...],...]
+  if (data && data[0]) {
+    return data[0].map(chunk => chunk[0]).filter(Boolean).join('');
+  }
+  return null;
+}
+
+async function translateOne(text, from, to, retries = 2) {
+  const cacheKey = from + '|' + to + '|' + text;
+  if (translationCache[cacheKey]) return translationCache[cacheKey];
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      // Try Google free first — more reliable and no daily quota issues
+      const result = await fetchGoogleFree(text, from, to);
+      if (result) {
+        translationCache[cacheKey] = result;
+        return result;
+      }
+    } catch(e) {}
+
+    // Fallback: MyMemory
+    try {
+      const result = await fetchMyMemory(text, from, to);
+      if (result) {
+        translationCache[cacheKey] = result;
+        return result;
+      }
+    } catch(e) {}
+
+    // Wait before retry (exponential backoff)
+    if (attempt < retries) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+  }
+  return null;
+}
+
 async function translateText(text) {
   if (!text.trim() || activeLangs.size === 0) return;
 
   const langsToTranslate = [...activeLangs];
   const sourceLang = document.getElementById('sourceLang').value.split('-')[0];
 
-  // Show thinking state on all cards simultaneously
+  // Show thinking state on all cards
   langsToTranslate.forEach(code => {
     const body = document.getElementById('body-' + code);
     const status = document.getElementById('status-' + code);
@@ -894,31 +957,25 @@ async function translateText(text) {
     if (card) card.classList.add('updating');
   });
 
-  // Fire all translations in parallel
-  const requests = langsToTranslate.map(async (code) => {
-    const targetCode = code === 'zh' ? 'zh-CN' : code;
-    const langpair = sourceLang + '|' + targetCode;
-    const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=' + encodeURIComponent(langpair);
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      return { code, text: data.responseStatus === 200 ? data.responseData.translatedText : null };
-    } catch {
-      return { code, text: null };
-    }
-  });
+  // Stagger requests slightly to avoid triggering rate limits
+  const delay = ms => new Promise(r => setTimeout(r, ms));
+  const results = await Promise.all(
+    langsToTranslate.map(async (code, i) => {
+      await delay(i * 80); // 80ms stagger between each language
+      const translated = await translateOne(text, sourceLang, code);
+      return { code, translated };
+    })
+  );
 
-  const results = await Promise.all(requests);
-
-  results.forEach(({ code, text: translated }) => {
+  results.forEach(({ code, translated }) => {
     const body = document.getElementById('body-' + code);
     const status = document.getElementById('status-' + code);
     const card = document.getElementById('card-' + code);
     const speakBtn = document.getElementById('speakBtn-' + code);
-    if (body) body.innerHTML = translated ? escapeHtml(translated) : '<span class="empty">Translation unavailable</span>';
-    if (status) status.className = 'card-status done';
+    if (body) body.innerHTML = translated ? escapeHtml(translated) : '<span class="empty">— retry in a moment —</span>';
+    if (status) status.className = translated ? 'card-status done' : 'card-status';
     if (card) card.classList.remove('updating');
-    if (speakBtn && translated) speakBtn.disabled = false;
+    if (speakBtn) speakBtn.disabled = !translated;
     if (translated && autoSpeak.has(code)) speakText(translated, code);
   });
 }
