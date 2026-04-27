@@ -184,9 +184,20 @@ function copyCode(btn){navigator.clipboard.writeText(roomCode);btn.textContent='
 function copyLink(btn){navigator.clipboard.writeText(audienceURL);btn.textContent='✓ Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='🔗 Copy Audience Link';btn.classList.remove('copied');},2000);}
 
 // ── Speech recognition ──
-let recognition=null,isRecording=false,finalTranscript='',publishDebounce=null,lastPublished='';
+// We collect ONLY finalized sentences before publishing.
+// This ensures the audience receives complete thoughts — not fragments —
+// which dramatically improves translation quality, especially for Vietnamese.
+let recognition=null,isRecording=false,finalTranscript='';
+let sentenceBuffer=''; // accumulates finalized words
+let publishedSentences=''; // what has already been sent
+let silenceTimer=null;
 
 function toggleRecording(){isRecording?stopRecording():startRecording();}
+
+function isSentenceEnd(text){
+  // Detect natural sentence boundaries
+  return /[.!?।。！？…]["']?\s*$/.test(text.trim()) || text.trim().length>120;
+}
 
 function startRecording(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -203,15 +214,34 @@ function startRecording(){
     document.getElementById('waveformWrap').style.display='block';
   };
   recognition.onresult=(e)=>{
-    let interim='';finalTranscript='';
+    let interim='';
+    finalTranscript='';
     for(let i=0;i<e.results.length;i++){
-      if(e.results[i].isFinal)finalTranscript+=e.results[i][0].transcript;
+      if(e.results[i].isFinal) finalTranscript+=e.results[i][0].transcript;
       else interim+=e.results[i][0].transcript;
     }
     updateTranscript(finalTranscript,interim);
-    if(finalTranscript&&finalTranscript!==lastPublished){
-      clearTimeout(publishDebounce);
-      publishDebounce=setTimeout(()=>{publishTranscript(finalTranscript);lastPublished=finalTranscript;},500);
+
+    // Only publish NEW finalized text not yet sent
+    const newText=finalTranscript.slice(publishedSentences.length).trim();
+    if(!newText) return;
+
+    // Clear silence timer — speaker is still talking
+    clearTimeout(silenceTimer);
+
+    if(isSentenceEnd(newText)){
+      // Complete sentence detected — publish immediately
+      publishTranscript(finalTranscript.trim());
+      publishedSentences=finalTranscript;
+    } else {
+      // Not a complete sentence yet — wait 2s of silence then publish anyway
+      silenceTimer=setTimeout(()=>{
+        const pending=finalTranscript.slice(publishedSentences.length).trim();
+        if(pending){
+          publishTranscript(finalTranscript.trim());
+          publishedSentences=finalTranscript;
+        }
+      },2000);
     }
   };
   recognition.onerror=(e)=>{if(e.error!=='no-speech')console.error(e.error);};
