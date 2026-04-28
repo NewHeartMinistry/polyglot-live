@@ -285,7 +285,7 @@ function connect(){
     try{
       const msg=JSON.parse(e.data);
       const p=msg.message?JSON.parse(msg.message):msg;
-      if(p.type==='transcript'&&p.text){speakerLang=p.sourceLang||'en';handleSpeakerText(p.text,p.sourceLang||'en');}
+      if(p.type==='transcript'&&p.text){speakerLang=p.sourceLang||'en';handleSpeakerText(p.text,p.sourceLang||'en',p.kind||'final');}
       // Speaker reply to Q&A
       if(p.type==='qa-reply'&&p.translatedText) showSpeakerReply(p);
     }catch(err){}
@@ -312,17 +312,30 @@ function disconnect(){
 }
 
 // ── Speaker → Me translation ──
-function handleSpeakerText(sourceText,srcLang){
-  if(sourceText===lastSourceText)return;
-  lastSourceText=sourceText;
+// Two-speed pipeline:
+//   interim (600ms) → Google Translate → display immediately as greyed italic
+//   final  (300ms)  → Claude (if key) or Google → display as confirmed text + speak
+let lastInterimSource='',lastFinalSource='';
+let interimTranslDebounce=null,finalTranslDebounce=null;
+
+function handleSpeakerText(sourceText,srcLang,kind){
   document.getElementById('sourceBar').textContent='🎙 '+sourceText;
   const myLang=document.getElementById('langSelect').value;
   const from=srcLang.split('-')[0];
-  const to=myLang.split('-')[0];
-  if(from===to){setTranslation(sourceText);return;}
-  showTyping();
-  clearTimeout(translateDebounce);
-  translateDebounce=setTimeout(()=>doTranslate(sourceText,from,myLang),200);
+  const to=myLang;
+  if(from===to.split('-')[0]){setTranslation(sourceText,false);return;}
+
+  if(kind==='interim'){
+    if(sourceText===lastInterimSource)return;
+    lastInterimSource=sourceText;
+    clearTimeout(interimTranslDebounce);
+    interimTranslDebounce=setTimeout(()=>doTranslate(sourceText,from,to,true),0);
+  } else {
+    if(sourceText===lastFinalSource)return;
+    lastFinalSource=sourceText;
+    clearTimeout(finalTranslDebounce);
+    finalTranslDebounce=setTimeout(()=>doTranslate(sourceText,from,to,false),0);
+  }
 }
 
 // ── API key helpers ──
@@ -335,13 +348,17 @@ function getApiKey(){return localStorage.getItem('anthropic-key')||'';}
 const LANG_FULL={'en':'English','es':'Spanish','fr':'French','de':'German','zh-CN':'Chinese','ja':'Japanese','ar':'Arabic','pt':'Portuguese','ru':'Russian','ko':'Korean','hi':'Hindi','vi':'Vietnamese'};
 let prevSentence='';
 
-async function doTranslate(text,from,to){
+async function doTranslate(text,from,to,isInterim){
   const cacheKey=from+'|'+to+'|'+text;
-  if(translationCache[cacheKey]){setTranslation(translationCache[cacheKey]);return;}
+  if(translationCache[cacheKey]){
+    setTranslation(translationCache[cacheKey],isInterim);
+    return;
+  }
   let result=null;
   const apiKey=getApiKey();
 
-  if(apiKey){
+  // Interim: use Google only (fast, ~200ms). Final: use Claude if available.
+  if(!isInterim && apiKey){
     try{
       const fromName=LANG_FULL[from]||from;
       const toName=LANG_FULL[to]||to;
@@ -359,20 +376,22 @@ async function doTranslate(text,from,to){
     }catch(e){}
   }
 
+  // Google Translate (both interim and final fallback)
   if(!result){
     try{
-      const ctxText=prevSentence?prevSentence+' '+text:text;
+      const ctxText=(!isInterim&&prevSentence)?prevSentence+' '+text:text;
       const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl='+encodeURIComponent(from)+'&tl='+encodeURIComponent(to)+'&dt=t&q='+encodeURIComponent(ctxText);
       const res=await fetch(url);const data=await res.json();
       if(data&&data[0]){
         const full=data[0].map(c=>c[0]).filter(Boolean).join('');
-        if(prevSentence){const idx=full.lastIndexOf('. ');result=idx>0&&idx<full.length-2?full.slice(idx+2):full;}
+        if(!isInterim&&prevSentence){const idx=full.lastIndexOf('. ');result=idx>0&&idx<full.length-2?full.slice(idx+2):full;}
         else{result=full;}
       }
     }catch(e){}
   }
 
-  if(!result){
+  // MyMemory last resort (final only)
+  if(!result&&!isInterim){
     try{
       const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair='+encodeURIComponent(from+'|'+to);
       const res=await fetch(url);const data=await res.json();
@@ -380,17 +399,24 @@ async function doTranslate(text,from,to){
     }catch(e){}
   }
 
-  if(result){translationCache[cacheKey]=result;prevSentence=text;}
-  setTranslation(result);
+  if(result&&!isInterim){translationCache[cacheKey]=result;prevSentence=text;}
+  if(result)setTranslation(result,isInterim);
 }
 
-function setTranslation(text){
-  currentTranslation=text||'';
-  const box=document.getElementById('translationText');
-  const btn=document.getElementById('speakNowBtn');
-  if(!text){box.innerHTML='<span style="color:var(--muted);font-style:italic">Could not translate — will retry next phrase</span>';btn.disabled=true;return;}
-  box.innerHTML=esc(text);btn.disabled=false;
-  if(autoSpeak&&audioUnlocked)speakText(text);
+function setTranslation(text,isInterim){
+  if(!text)return;
+  // Interim shown greyed — final shown solid and triggers speech
+  if(!isInterim){
+    currentTranslation=text;
+    document.getElementById('translationText').innerHTML=esc(text);
+    document.getElementById('speakNowBtn').disabled=false;
+    if(autoSpeak&&audioUnlocked)speakText(text);
+  } else {
+    // Only show interim if we don't already have a confirmed translation showing
+    document.getElementById('translationText').innerHTML=
+      '<span style="color:var(--muted);font-style:italic">'+esc(text)+'</span>';
+    document.getElementById('speakNowBtn').disabled=true;
+  }
 }
 
 function showTyping(){
