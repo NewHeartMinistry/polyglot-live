@@ -184,20 +184,16 @@ function copyCode(btn){navigator.clipboard.writeText(roomCode);btn.textContent='
 function copyLink(btn){navigator.clipboard.writeText(audienceURL);btn.textContent='✓ Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='🔗 Copy Audience Link';btn.classList.remove('copied');},2000);}
 
 // ── Speech recognition ──
-// We collect ONLY finalized sentences before publishing.
-// This ensures the audience receives complete thoughts — not fragments —
-// which dramatically improves translation quality, especially for Vietnamese.
+// Strategy: publish BOTH interim (every 600ms) AND final results.
+// Interim = fast, shows audience the words as they're spoken.
+// Final   = confirmed words, triggers a high-quality retranslation.
+// On the audience side, interim translations display immediately and are
+// smoothly replaced by the final translation when it arrives.
 let recognition=null,isRecording=false,finalTranscript='';
-let sentenceBuffer=''; // accumulates finalized words
-let publishedSentences=''; // what has already been sent
-let silenceTimer=null;
+let interimDebounce=null,finalDebounce=null;
+let lastInterim='',lastFinal='';
 
 function toggleRecording(){isRecording?stopRecording():startRecording();}
-
-function isSentenceEnd(text){
-  // Detect natural sentence boundaries
-  return /[.!?।。！？…]["']?\s*$/.test(text.trim()) || text.trim().length>120;
-}
 
 function startRecording(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -220,28 +216,26 @@ function startRecording(){
       if(e.results[i].isFinal) finalTranscript+=e.results[i][0].transcript;
       else interim+=e.results[i][0].transcript;
     }
+
+    const fullText=(finalTranscript+' '+interim).trim();
     updateTranscript(finalTranscript,interim);
 
-    // Only publish NEW finalized text not yet sent
-    const newText=finalTranscript.slice(publishedSentences.length).trim();
-    if(!newText) return;
+    // ── Interim: publish fast (every 600ms) for near-real-time feel
+    if(interim && fullText!==lastInterim){
+      clearTimeout(interimDebounce);
+      interimDebounce=setTimeout(()=>{
+        lastInterim=fullText;
+        publishTranscript(fullText,'interim');
+      },600);
+    }
 
-    // Clear silence timer — speaker is still talking
-    clearTimeout(silenceTimer);
-
-    if(isSentenceEnd(newText)){
-      // Complete sentence detected — publish immediately
-      publishTranscript(finalTranscript.trim());
-      publishedSentences=finalTranscript;
-    } else {
-      // Not a complete sentence yet — wait 2s of silence then publish anyway
-      silenceTimer=setTimeout(()=>{
-        const pending=finalTranscript.slice(publishedSentences.length).trim();
-        if(pending){
-          publishTranscript(finalTranscript.trim());
-          publishedSentences=finalTranscript;
-        }
-      },2000);
+    // ── Final: publish confirmed words immediately for quality retranslation
+    if(finalTranscript && finalTranscript!==lastFinal){
+      clearTimeout(finalDebounce);
+      finalDebounce=setTimeout(()=>{
+        lastFinal=finalTranscript;
+        publishTranscript(finalTranscript.trim(),'final');
+      },300);
     }
   };
   recognition.onerror=(e)=>{if(e.error!=='no-speech')console.error(e.error);};
@@ -272,9 +266,10 @@ function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g
 const TOPIC='polyglot-'+roomCode.toLowerCase();
 const QA_TOPIC='polyglot-'+roomCode.toLowerCase()+'-qa';
 
-async function publishTranscript(text){
+async function publishTranscript(text, kind='final'){
   const srcLang=document.getElementById('sourceLang').value;
-  const payload=JSON.stringify({text,sourceLang:srcLang,ts:Date.now(),type:'transcript'});
+  // kind: 'interim' = fast partial, 'final' = confirmed words for quality retranslation
+  const payload=JSON.stringify({text,sourceLang:srcLang,ts:Date.now(),type:'transcript',kind});
   try{
     const res=await fetch('https://ntfy.sh/'+TOPIC,{method:'POST',headers:{'Content-Type':'application/json','Title':'transcript'},body:payload});
     const ok=res.ok;
