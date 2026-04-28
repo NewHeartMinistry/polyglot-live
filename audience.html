@@ -7,12 +7,11 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
 <style>
-  :root{--bg:#080c14;--surface:#0d1220;--surface2:#131929;--border:rgba(255,255,255,0.07);--accent:#00d4ff;--accent2:#7b61ff;--text:#e8edf7;--muted:#5a6478;--live:#00ff88;--qa:#ff9f43;}
+  :root{--bg:#080c14;--surface:#0d1220;--surface2:#131929;--border:rgba(255,255,255,0.07);--accent:#00d4ff;--accent2:#7b61ff;--text:#e8edf7;--muted:#5a6478;--live:#00ff88;--qa:#ff9f43;--warn:#ffcc00;}
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
   body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:500;}
   body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
-
   #audioGate{position:fixed;inset:0;z-index:2000;background:rgba(8,12,20,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px;text-align:center;}
   #audioGate .gate-icon{font-size:56px;filter:drop-shadow(0 0 20px rgba(0,212,255,0.4));}
   #audioGate h2{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500;letter-spacing:0.08em;}
@@ -20,7 +19,6 @@
   #audioGate .tap-btn{padding:16px 44px;border-radius:12px;border:2px solid var(--accent);background:rgba(0,212,255,0.08);color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:15px;letter-spacing:0.1em;cursor:pointer;animation:glow 2s ease-in-out infinite;}
   @keyframes glow{0%,100%{box-shadow:0 0 12px rgba(0,212,255,0.2)}50%{box-shadow:0 0 28px rgba(0,212,255,0.5)}}
   #audioGate .gate-note{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
-
   header{padding:14px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:relative;z-index:10;flex-shrink:0;}
   .logo{display:flex;align-items:center;gap:8px;}
   .logo-icon{width:28px;height:28px;border:1.5px solid var(--accent2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--accent2);}
@@ -31,27 +29,24 @@
   .audio-status{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
   .audio-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);}
   .audio-dot.ok{background:var(--live);box-shadow:0 0 5px var(--live);}
-
   .main{position:relative;z-index:10;padding:18px 24px;display:flex;flex-direction:column;gap:14px;flex:1;}
-
   .connect-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 22px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;}
   .field{display:flex;flex-direction:column;gap:6px;}
   .field label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
   .field label .hint{color:var(--live);font-size:9px;margin-left:4px;}
-  .code-input{background:var(--surface2);border:1.5px solid var(--border);color:var(--text);padding:9px 14px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:18px;letter-spacing:0.2em;width:160px;outline:none;text-transform:uppercase;transition:border-color 0.2s;}
+  .code-input{background:var(--surface2);border:1.5px solid var(--border);color:var(--text);padding:9px 14px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:18px;letter-spacing:0.2em;width:155px;outline:none;text-transform:uppercase;transition:border-color 0.2s;}
   .code-input:focus{border-color:var(--accent);}
   .code-input.connected{border-color:var(--live);color:var(--live);}
   select.lang-select{background:var(--surface2);border:1.5px solid var(--border);color:var(--text);padding:9px 14px;border-radius:7px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;cursor:pointer;outline:none;min-width:160px;}
-  .api-input{background:var(--surface2);border:1.5px solid var(--border);color:var(--text);padding:9px 14px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:12px;width:210px;outline:none;transition:border-color 0.2s;}
-  .api-input:focus{border-color:var(--accent2);}
-  .connect-btn{padding:10px 24px;border-radius:8px;border:1.5px solid var(--accent2);background:rgba(123,97,255,0.07);color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.08em;cursor:pointer;transition:all 0.2s;}
+  .api-input{background:var(--surface2);border:1.5px solid var(--border);color:var(--text);padding:9px 14px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:12px;width:210px;outline:none;}
+  .connect-btn{padding:10px 24px;border-radius:8px;border:1.5px solid var(--accent2);background:rgba(123,97,255,0.07);color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;transition:all 0.2s;}
   .connect-btn.on{background:rgba(255,60,60,0.08);border-color:#ff6666;color:#ff6666;}
   .conn-status{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
   .dot{width:6px;height:6px;border-radius:50%;background:var(--muted);transition:all 0.3s;flex-shrink:0;}
   .dot.live{background:var(--live);box-shadow:0 0 7px var(--live);animation:pulse 1.5s ease-in-out infinite;}
+  .dot.warn{background:var(--warn);}
   .dot.err{background:#ff5555;}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-
   .columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;flex:1;min-height:0;}
   .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;}
   .panel-header{padding:11px 18px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -66,14 +61,13 @@
   .speak-btn-sm.speaking{border-color:rgba(0,255,136,0.35);color:var(--live);background:rgba(0,255,136,0.07);}
   .speak-btn-sm:disabled{opacity:0.3;cursor:not-allowed;}
   .translation-text{flex:1;padding:22px 24px;font-size:clamp(15px,2vw,22px);line-height:1.75;overflow-y:auto;}
-  .translation-text::-webkit-scrollbar{width:3px;}
-  .translation-text::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+  .interim-text{color:var(--muted);font-style:italic;}
   .empty-hint{color:var(--muted);font-size:14px;text-align:center;margin-top:30px;display:flex;flex-direction:column;align-items:center;gap:10px;}
   .empty-hint .big{font-size:36px;opacity:0.2;}
   .source-bar{padding:8px 18px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);font-style:italic;min-height:34px;flex-shrink:0;}
   .qa-panel-body{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;}
   .qa-mic-area{padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0;}
-  .qa-mic-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border-radius:8px;border:1.5px solid var(--qa);background:rgba(255,159,67,0.05);color:var(--qa);font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.07em;cursor:pointer;transition:all 0.2s;}
+  .qa-mic-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border-radius:8px;border:1.5px solid var(--qa);background:rgba(255,159,67,0.05);color:var(--qa);font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;transition:all 0.2s;}
   .qa-mic-btn.recording{background:rgba(0,255,136,0.08);border-color:var(--live);color:var(--live);}
   .qa-mic-btn:disabled{opacity:0.35;cursor:not-allowed;}
   .qa-hint{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:8px;text-align:center;}
@@ -81,10 +75,6 @@
   .qa-msg-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:5px;}
   .qa-msg-text{font-size:14px;line-height:1.55;}
   .placeholder-qa{color:var(--muted);font-size:13px;text-align:center;padding:20px 10px;}
-  .typing{display:inline-flex;gap:4px;align-items:center;}
-  .typing span{width:4px;height:4px;border-radius:50%;background:var(--accent2);animation:bounce 0.9s ease-in-out infinite;}
-  .typing span:nth-child(2){animation-delay:0.15s}.typing span:nth-child(3){animation-delay:0.3s}
-  @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-4px);opacity:1}}
   .swave{display:inline-flex;gap:2px;align-items:center;height:12px;}
   .swave span{width:2px;border-radius:1px;background:currentColor;animation:swave 0.6s ease-in-out infinite;transform-origin:bottom;}
   .swave span:nth-child(1){height:4px}.swave span:nth-child(2){height:8px;animation-delay:0.1s}.swave span:nth-child(3){height:12px;animation-delay:0.2s}.swave span:nth-child(4){height:6px;animation-delay:0.1s}
@@ -93,14 +83,13 @@
   .wave-bar{width:2px;border-radius:1px;background:var(--live);animation:wave 0.8s ease-in-out infinite;transform-origin:bottom;}
   .wave-bar:nth-child(1){height:4px}.wave-bar:nth-child(2){height:9px;animation-delay:0.1s}.wave-bar:nth-child(3){height:13px;animation-delay:0.2s}.wave-bar:nth-child(4){height:7px;animation-delay:0.1s}.wave-bar:nth-child(5){height:3px}
   @keyframes wave{0%,100%{transform:scaleY(0.4);opacity:0.5}50%{transform:scaleY(1);opacity:1}}
-  .interim-text{color:var(--muted);font-style:italic;}
 </style>
 </head>
 <body>
 <div id="audioGate">
   <div class="gate-icon">🔊</div>
   <h2>TAP TO ENABLE AUDIO</h2>
-  <p>Browsers require one tap before audio can play. Translations will be spoken automatically after this.</p>
+  <p>Browsers require one tap before audio can play automatically.</p>
   <button class="tap-btn" onclick="unlockAudio()">TAP TO ENABLE AUDIO</button>
   <div class="gate-note">Only needed once per session</div>
 </div>
@@ -141,9 +130,7 @@
     <button class="connect-btn" id="connectBtn" onclick="toggleConnect()">CONNECT</button>
     <div class="conn-status"><div class="dot" id="connDot"></div><span id="connText">Not connected</span></div>
   </div>
-
   <div class="columns">
-    <!-- Speaker translation panel -->
     <div class="panel">
       <div class="panel-header">
         <span>Speaker → <span id="dispLang">You</span> <span id="dispFlag" style="font-size:16px">🌐</span></span>
@@ -158,13 +145,9 @@
       </div>
       <div class="source-bar" id="sourceBar">Waiting for speaker...</div>
     </div>
-
-    <!-- Q&A panel -->
     <div class="panel">
       <div class="panel-header"><span>Q &amp; A</span><div class="badge badge-orange">ASK QUESTION</div></div>
-      <div class="qa-panel-body" id="qaBody">
-        <div class="placeholder-qa" id="qaPlaceholder">Questions you ask will appear here.</div>
-      </div>
+      <div class="qa-panel-body" id="qaBody"><div class="placeholder-qa" id="qaPlaceholder">Questions you ask will appear here.</div></div>
       <div class="qa-mic-area">
         <button class="qa-mic-btn" id="qaMicBtn" onclick="toggleQARecording()" disabled>🎙 ASK A QUESTION</button>
         <div class="qa-hint" id="qaHint">Connect to a room first.</div>
@@ -172,198 +155,220 @@
     </div>
   </div>
 </div>
-
 <script>
 const LANG_BCP={'en':'en-US','es':'es-ES','fr':'fr-FR','de':'de-DE','zh-CN':'zh-CN','ja':'ja-JP','ar':'ar-SA','pt':'pt-BR','ru':'ru-RU','ko':'ko-KR','hi':'hi-IN','vi':'vi-VN'};
 const LANG_FULL={'en':'English','es':'Spanish','fr':'French','de':'German','zh-CN':'Mandarin','ja':'Japanese','ar':'Arabic','pt':'Portuguese','ru':'Russian','ko':'Korean','hi':'Hindi','vi':'Vietnamese'};
 
 let audioUnlocked=false;
-let peer=null,speakerConn=null,isConnected=false;
-let autoSpeak=false,currentTranslation='',currentInterim='';
-let speakerLang='en';
-let prevSentence='';
+let peer=null, speakerConn=null, ntfyES=null;
+let isConnected=false, useWebRTC=false;
+let autoSpeak=false, currentTranslation='';
+let speakerLang='en', prevSentence='';
 const translationCache={};
-let lastTranslatedFinal='',lastTranslatedInterim='';
-let finalTranslDebounce=null,interimTranslDebounce=null;
-let qaRecognition=null,isQARecording=false;
+let lastFinal='', lastInterim='';
+let finalDebounce=null, interimDebounce=null;
+let qaRecognition=null, isQARecording=false;
+let currentRoomCode='';
+const NTFY_BASE='https://ntfy.sh';
 
-// Prefill room from URL
+// Prefill from URL
 const urlParams=new URLSearchParams(window.location.search);
 if(urlParams.get('room'))document.getElementById('codeInput').value=urlParams.get('room').toUpperCase();
-
-// Restore API key
 const _saved=localStorage.getItem('anthropic-key');
 if(_saved)document.getElementById('apiKeyInput').value=_saved;
-
 onLangChange();
 
-// ── Audio unlock ──
 function unlockAudio(){
   const u=new SpeechSynthesisUtterance(' ');u.volume=0.01;u.rate=10;
-  const done=()=>{
-    audioUnlocked=true;
-    document.getElementById('audioGate').style.display='none';
-    document.getElementById('audioDot').className='audio-dot ok';
-    document.getElementById('audioStatusText').textContent='Audio ready';
-  };
-  u.onend=done;u.onerror=done;
-  window.speechSynthesis.cancel();window.speechSynthesis.speak(u);
+  const done=()=>{audioUnlocked=true;document.getElementById('audioGate').style.display='none';document.getElementById('audioDot').className='audio-dot ok';document.getElementById('audioStatusText').textContent='Audio ready';};
+  u.onend=done;u.onerror=done;window.speechSynthesis.cancel();window.speechSynthesis.speak(u);
 }
 
 function onLangChange(){
-  const sel=document.getElementById('langSelect');
-  const opt=sel.options[sel.selectedIndex];
+  const sel=document.getElementById('langSelect');const opt=sel.options[sel.selectedIndex];
   document.getElementById('dispFlag').textContent=opt.dataset.flag||'🌐';
   document.getElementById('dispLang').textContent=LANG_FULL[opt.value]||opt.text.replace(/^.{3}/,'').trim();
 }
-
-function saveApiKey(){
-  const k=document.getElementById('apiKeyInput').value.trim();
-  if(k)localStorage.setItem('anthropic-key',k);else localStorage.removeItem('anthropic-key');
-}
+function saveApiKey(){const k=document.getElementById('apiKeyInput').value.trim();if(k)localStorage.setItem('anthropic-key',k);else localStorage.removeItem('anthropic-key');}
 function getApiKey(){return localStorage.getItem('anthropic-key')||'';}
 
-// ── PeerJS — audience connects TO the speaker's peer ──
+// ── Connect ───────────────────────────────────────────────────────────────────
 function toggleConnect(){isConnected?disconnect():connect();}
 
 function connect(){
   const code=document.getElementById('codeInput').value.trim().toUpperCase();
   if(code.length<4){alert('Enter a valid room code.');return;}
-  const speakerPeerId='polyglot-'+code.toLowerCase();
-
-  document.getElementById('connText').textContent='Connecting...';
-  document.getElementById('connDot').className='dot';
-
-  // Each audience member gets a unique peer ID
-  peer=new Peer(undefined,{debug:0});
-  peer.on('open',()=>{
-    speakerConn=peer.connect(speakerPeerId,{reliable:true,serialization:'json'});
-    speakerConn.on('open',()=>{
-      isConnected=true;
-      document.getElementById('connectBtn').textContent='DISCONNECT';
-      document.getElementById('connectBtn').className='connect-btn on';
-      document.getElementById('connDot').className='dot live';
-      document.getElementById('connText').textContent='Connected';
-      document.getElementById('codeInput').classList.add('connected');
-      document.getElementById('qaMicBtn').disabled=false;
-      document.getElementById('qaHint').textContent='Tap to ask the speaker a question.';
-      document.getElementById('translationText').innerHTML='<div class="empty-hint"><div class="big">👂</div><span>Connected! Waiting for speaker to begin...</span></div>';
-    });
-    speakerConn.on('data',(data)=>{
-      if(data.type==='config'){speakerLang=data.sourceLang||'en';}
-      if(data.type==='transcript'){
-        speakerLang=data.sourceLang||'en';
-        handleIncoming(data);
-      }
-    });
-    speakerConn.on('close',()=>handleDisconnect());
-    speakerConn.on('error',()=>handleDisconnect());
-  });
-  peer.on('error',(err)=>{
-    document.getElementById('connDot').className='dot err';
-    document.getElementById('connText').textContent='Error: '+err.type;
-  });
+  currentRoomCode=code;
+  setConnStatus('connecting','Connecting...');
+  // Try WebRTC first (5s timeout), then fall back to ntfy
+  tryWebRTC(code);
 }
 
-function handleDisconnect(){
-  if(!isConnected)return;
-  document.getElementById('connDot').className='dot err';
-  document.getElementById('connText').textContent='Lost connection — reconnecting...';
-  setTimeout(()=>{if(!isConnected)connect();},2000);
+function tryWebRTC(code){
+  const speakerPeerId='polyglot-'+code.toLowerCase();
+  let opened=false;
+
+  const timeout=setTimeout(()=>{
+    if(!opened){
+      console.log('WebRTC timeout — falling back to ntfy');
+      if(peer){try{peer.destroy();}catch(e){}peer=null;}
+      startNtfy(code);
+    }
+  },5000);
+
+  try{
+    peer=new Peer(undefined,{debug:0});
+    peer.on('open',()=>{
+      speakerConn=peer.connect(speakerPeerId,{reliable:true,serialization:'json'});
+      speakerConn.on('open',()=>{
+        clearTimeout(timeout);
+        opened=true;useWebRTC=true;
+        onConnected('webrtc');
+        speakerConn.send({type:'hello'});
+      });
+      speakerConn.on('data',(data)=>handleData(data));
+      speakerConn.on('close',()=>{if(isConnected)handleDropped();});
+      speakerConn.on('error',()=>{if(isConnected)handleDropped();});
+    });
+    peer.on('error',(err)=>{
+      clearTimeout(timeout);
+      if(!opened){console.log('PeerJS error:',err.type,'— falling back to ntfy');if(peer){try{peer.destroy();}catch(e){}peer=null;}startNtfy(code);}
+    });
+  }catch(e){
+    clearTimeout(timeout);
+    startNtfy(code);
+  }
+}
+
+function startNtfy(code){
+  useWebRTC=false;
+  const topic=NTFY_BASE+'/polyglot-'+code.toLowerCase()+'/sse';
+  ntfyES=new EventSource(topic);
+  ntfyES.onopen=()=>onConnected('ntfy');
+  ntfyES.addEventListener('message',(e)=>{
+    try{
+      const msg=JSON.parse(e.data);
+      const p=msg.message?JSON.parse(msg.message):msg;
+      handleData(p);
+    }catch(err){}
+  });
+  ntfyES.onerror=()=>{if(isConnected){setConnStatus('warn','Cloud relay reconnecting...');}};
+}
+
+function onConnected(mode){
+  isConnected=true;
+  document.getElementById('connectBtn').textContent='DISCONNECT';
+  document.getElementById('connectBtn').className='connect-btn on';
+  document.getElementById('codeInput').classList.add('connected');
+  document.getElementById('qaMicBtn').disabled=false;
+  document.getElementById('qaHint').textContent='Tap to ask the speaker a question.';
+  document.getElementById('translationText').innerHTML='<div class="empty-hint"><div class="big">👂</div><span>Connected! Waiting for speaker...</span></div>';
+  if(mode==='webrtc'){setConnStatus('live','⚡ Direct — ultra-low latency');}
+  else{setConnStatus('live','📡 Cloud relay — works everywhere');}
+}
+
+function handleDropped(){
+  setConnStatus('warn','Lost — retrying...');
+  setTimeout(()=>{
+    if(isConnected&&!speakerConn?.open){
+      if(peer){try{peer.destroy();}catch(e){}peer=null;}
+      tryWebRTC(currentRoomCode);
+    }
+  },2000);
 }
 
 function disconnect(){
-  if(speakerConn){speakerConn.close();speakerConn=null;}
-  if(peer){peer.destroy();peer=null;}
-  isConnected=false;
+  isConnected=false;useWebRTC=false;
+  if(speakerConn){try{speakerConn.close();}catch(e){}speakerConn=null;}
+  if(peer){try{peer.destroy();}catch(e){}peer=null;}
+  if(ntfyES){ntfyES.close();ntfyES=null;}
   window.speechSynthesis.cancel();
   document.getElementById('connectBtn').textContent='CONNECT';
   document.getElementById('connectBtn').className='connect-btn';
-  document.getElementById('connDot').className='dot';
-  document.getElementById('connText').textContent='Not connected';
   document.getElementById('codeInput').classList.remove('connected');
   document.getElementById('qaMicBtn').disabled=true;
+  setConnStatus('off','Not connected');
 }
 
-// ── Incoming transcript handler — two-speed translation ──
-// interim: translate with Google immediately, show greyed
-// final:   translate with Claude (if key) for natural result, show solid + speak
-function handleIncoming(data){
+function setConnStatus(state,text){
+  const dot=document.getElementById('connDot');
+  const classes={live:'dot live',warn:'dot warn',err:'dot err',connecting:'dot',off:'dot'};
+  dot.className=classes[state]||'dot';
+  document.getElementById('connText').textContent=text;
+}
+
+// ── Handle incoming data ──────────────────────────────────────────────────────
+function handleData(data){
+  if(!data||!data.type)return;
+  if(data.type==='config'){speakerLang=data.sourceLang||'en';}
+  if(data.type==='transcript'){
+    speakerLang=data.sourceLang||'en';
+    processTranscript(data);
+  }
+}
+
+function processTranscript(data){
   const myLang=document.getElementById('langSelect').value;
   const from=(data.sourceLang||'en').split('-')[0];
   const to=myLang;
   const sameLanguage=from===to.split('-')[0];
-
-  // Update source bar always
-  const displayText=(data.final||'')+( data.interim?' '+data.interim:'');
-  document.getElementById('sourceBar').textContent='🎙 '+displayText.trim();
+  const srcText=(data.final||'')+(data.interim?' '+data.interim:'');
+  document.getElementById('sourceBar').textContent='🎙 '+srcText.trim();
 
   if(sameLanguage){
-    // No translation needed — show directly
-    const finalPart=data.final||'';
-    const interimPart=data.interim||'';
-    let html=finalPart?esc(finalPart):'';
-    if(interimPart)html+='<span class="interim-text"> '+esc(interimPart)+'</span>';
-    document.getElementById('translationText').innerHTML=html;
-    if(finalPart){
-      currentTranslation=finalPart;
+    let html=data.final?esc(data.final):'';
+    if(data.interim)html+='<span class="interim-text"> '+esc(data.interim)+'</span>';
+    document.getElementById('translationText').innerHTML=html||'';
+    if(data.final&&data.final!==lastFinal){
+      lastFinal=data.final;currentTranslation=data.final;
       document.getElementById('speakNowBtn').disabled=false;
-      if(autoSpeak&&audioUnlocked&&finalPart!==lastTranslatedFinal){
-        lastTranslatedFinal=finalPart;speakText(finalPart);
-      }
+      if(autoSpeak&&audioUnlocked)speakText(data.final);
     }
     return;
   }
 
-  // ── Interim: translate immediately using Google (fast ~150ms) ──
+  // Interim — translate with Google immediately (show greyed)
   if(data.interim){
     const interimFull=(data.final+' '+data.interim).trim();
-    if(interimFull!==lastTranslatedInterim){
-      lastTranslatedInterim=interimFull;
-      clearTimeout(interimTranslDebounce);
-      interimTranslDebounce=setTimeout(()=>translateAndShow(interimFull,from,to,true),0);
+    if(interimFull!==lastInterim){
+      lastInterim=interimFull;
+      clearTimeout(interimDebounce);
+      interimDebounce=setTimeout(()=>translateAndShow(interimFull,from,to,true),0);
     }
   }
-
-  // ── Final: higher quality translation (Claude if available) ──
-  if(data.final&&data.final!==lastTranslatedFinal){
-    clearTimeout(finalTranslDebounce);
-    finalTranslDebounce=setTimeout(()=>{
-      lastTranslatedFinal=data.final;
-      translateAndShow(data.final,from,to,false);
-    },0);
+  // Final — high quality translation
+  if(data.final&&data.final!==lastFinal){
+    lastFinal=data.final;
+    clearTimeout(finalDebounce);
+    finalDebounce=setTimeout(()=>translateAndShow(data.final,from,to,false),0);
   }
 }
 
+// ── Translation ───────────────────────────────────────────────────────────────
 async function translateAndShow(text,from,to,isInterim){
-  const cacheKey=from+'|'+to+'|'+text;
-  if(translationCache[cacheKey]){
-    displayTranslation(translationCache[cacheKey],isInterim);return;
-  }
-
+  const key=from+'|'+to+'|'+text;
+  if(translationCache[key]){showTranslation(translationCache[key],isInterim);return;}
   let result=null;
   const apiKey=getApiKey();
 
-  // Claude — final only (adds ~300ms but very natural)
+  // Claude — final only
   if(!isInterim&&apiKey){
     try{
-      const fromName=LANG_FULL[from]||from;
-      const toName=LANG_FULL[to]||to;
-      const ctx=prevSentence?'Previous: "'+prevSentence+'"\n':'';
-      const prompt=ctx+'Translate this '+fromName+' into natural spoken '+toName+' a native speaker would say. No notes, just the translation.\n\n"'+text+'"';
+      const fromName=LANG_FULL[from]||from, toName=LANG_FULL[to]||to;
+      const ctx=prevSentence?'Context: "'+prevSentence+'"\n':'';
+      const prompt=ctx+'Translate to natural spoken '+toName+' a native would say. Return only the translation.\n\n"'+text+'"';
       const res=await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
         headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
         body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:400,messages:[{role:'user',content:prompt}]})
       });
       const data=await res.json();
-      if(data.content&&data.content[0]&&data.content[0].text){
+      if(data.content&&data.content[0]&&data.content[0].text)
         result=data.content[0].text.trim().replace(/^[\u201c"']/,'').replace(/[\u201d"']$/,'');
-      }
     }catch(e){}
   }
 
-  // Google Translate — fast, used for interim and Claude fallback
+  // Google Translate — fast, for both interim and fallback
   if(!result){
     try{
       const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl='+encodeURIComponent(from)+'&tl='+encodeURIComponent(to)+'&dt=t&q='+encodeURIComponent(text);
@@ -383,20 +388,18 @@ async function translateAndShow(text,from,to,isInterim){
   }
 
   if(result){
-    if(!isInterim){translationCache[cacheKey]=result;prevSentence=text;}
-    displayTranslation(result,isInterim);
+    if(!isInterim){translationCache[key]=result;prevSentence=text;}
+    showTranslation(result,isInterim);
   }
 }
 
-function displayTranslation(text,isInterim){
+function showTranslation(text,isInterim){
   const box=document.getElementById('translationText');
   const btn=document.getElementById('speakNowBtn');
   if(isInterim){
-    // Show interim greyed while waiting for final
     box.innerHTML='<span class="interim-text">'+esc(text)+'</span>';
     btn.disabled=true;
-  } else {
-    // Final: solid text, enable speak, auto-speak
+  }else{
     currentTranslation=text;
     box.innerHTML=esc(text);
     btn.disabled=false;
@@ -406,7 +409,7 @@ function displayTranslation(text,isInterim){
 
 function esc(t){return(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-// ── Auto speak ──
+// ── TTS ───────────────────────────────────────────────────────────────────────
 function toggleAuto(){
   autoSpeak=!autoSpeak;
   const btn=document.getElementById('autoToggle');
@@ -414,10 +417,7 @@ function toggleAuto(){
   btn.className='auto-toggle'+(autoSpeak?' on':'');
   if(autoSpeak&&!audioUnlocked)document.getElementById('audioGate').style.display='flex';
 }
-function speakNow(){
-  if(!audioUnlocked){document.getElementById('audioGate').style.display='flex';return;}
-  if(currentTranslation)speakText(currentTranslation);
-}
+function speakNow(){if(!audioUnlocked){document.getElementById('audioGate').style.display='flex';return;}if(currentTranslation)speakText(currentTranslation);}
 function speakText(text){
   window.speechSynthesis.cancel();
   const myLang=document.getElementById('langSelect').value;
@@ -435,11 +435,18 @@ function setSpeakingState(on){
   btn.innerHTML=on?'<span class="swave"><span></span><span></span><span></span><span></span></span>':'▶';
 }
 
-// ── Q&A ──
-function toggleQARecording(){
-  if(!audioUnlocked){document.getElementById('audioGate').style.display='flex';return;}
-  isQARecording?stopQARecording():startQARecording();
+// ── Q&A ───────────────────────────────────────────────────────────────────────
+function sendQA(data){
+  if(useWebRTC&&speakerConn&&speakerConn.open){
+    speakerConn.send(data);
+  }else{
+    fetch(NTFY_BASE+'/polyglot-'+currentRoomCode.toLowerCase()+'-qa',{
+      method:'POST',headers:{'Content-Type':'application/json','Title':'qa'},body:JSON.stringify(data)
+    }).catch(()=>{});
+  }
 }
+
+function toggleQARecording(){if(!audioUnlocked){document.getElementById('audioGate').style.display='flex';return;}isQARecording?stopQARecording():startQARecording();}
 function startQARecording(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){const q=prompt('Type your question:');if(q&&q.trim())sendQAText(q.trim());return;}
@@ -454,66 +461,41 @@ function startQARecording(){
     document.getElementById('qaHint').textContent='Speak your question...';
   };
   let finalQ='';
-  qaRecognition.onresult=(e)=>{
-    finalQ='';let interim='';
-    for(let i=0;i<e.results.length;i++){
-      if(e.results[i].isFinal)finalQ+=e.results[i][0].transcript;
-      else interim+=e.results[i][0].transcript;
-    }
-    document.getElementById('qaHint').textContent=(finalQ||interim)||'Listening...';
-  };
-  qaRecognition.onend=()=>{
-    isQARecording=false;
-    document.getElementById('qaMicBtn').className='qa-mic-btn';
-    document.getElementById('qaMicBtn').innerHTML='🎙 ASK A QUESTION';
-    if(finalQ.trim())sendQAText(finalQ.trim());
-    else document.getElementById('qaHint').textContent='Tap to ask a question.';
-  };
-  qaRecognition.onerror=(e)=>{
-    isQARecording=false;
-    document.getElementById('qaMicBtn').className='qa-mic-btn';
-    document.getElementById('qaMicBtn').innerHTML='🎙 ASK A QUESTION';
-    if(e.error==='not-allowed'){const q=prompt('Mic unavailable. Type your question:');if(q&&q.trim())sendQAText(q.trim());}
-  };
+  qaRecognition.onresult=(e)=>{finalQ='';let interim='';for(let i=0;i<e.results.length;i++){if(e.results[i].isFinal)finalQ+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript;}document.getElementById('qaHint').textContent=(finalQ||interim)||'Listening...';};
+  qaRecognition.onend=()=>{isQARecording=false;document.getElementById('qaMicBtn').className='qa-mic-btn';document.getElementById('qaMicBtn').innerHTML='🎙 ASK A QUESTION';if(finalQ.trim())sendQAText(finalQ.trim());else document.getElementById('qaHint').textContent='Tap to ask a question.';};
+  qaRecognition.onerror=(e)=>{isQARecording=false;document.getElementById('qaMicBtn').className='qa-mic-btn';document.getElementById('qaMicBtn').innerHTML='🎙 ASK A QUESTION';if(e.error==='not-allowed'){const q=prompt('Mic unavailable. Type:');if(q&&q.trim())sendQAText(q.trim());}};
   qaRecognition.start();
 }
 function stopQARecording(){isQARecording=false;if(qaRecognition)qaRecognition.stop();}
 
 async function sendQAText(originalText){
   const myLang=document.getElementById('langSelect').value;
-  const fromCode=myLang.split('-')[0];
-  const toCode=speakerLang.split('-')[0]||'en';
-  addQAMessage('Translating...',null,true);
-  let translated=fromCode===toCode?originalText:null;
+  const from=myLang.split('-')[0], to=(speakerLang||'en').split('-')[0];
+  addQAMsg('Translating...',null,true);
+  let translated=from===to?originalText:null;
   if(!translated){
     try{
-      const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl='+encodeURIComponent(fromCode)+'&tl='+encodeURIComponent(toCode)+'&dt=t&q='+encodeURIComponent(originalText);
+      const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl='+encodeURIComponent(from)+'&tl='+encodeURIComponent(to)+'&dt=t&q='+encodeURIComponent(originalText);
       const res=await fetch(url);const data=await res.json();
       if(data&&data[0])translated=data[0].map(c=>c[0]).filter(Boolean).join('');
     }catch(e){}
   }
-  if(!translated){updateLastQAMessage('Translation failed. Try again.');return;}
-  updateLastQAMessage(translated,originalText);
-  // Send directly to speaker via WebRTC
-  if(speakerConn&&speakerConn.open){
-    speakerConn.send({type:'qa',originalText,translatedText:translated,fromLang:LANG_FULL[myLang]||myLang,ts:Date.now()});
-  }
+  if(!translated){updateLastQAMsg('Translation failed.');return;}
+  updateLastQAMsg(translated,originalText);
+  sendQA({type:'qa',originalText,translatedText:translated,fromLang:LANG_FULL[myLang]||myLang,ts:Date.now()});
   document.getElementById('qaHint').textContent='Question sent!';
   setTimeout(()=>document.getElementById('qaHint').textContent='Tap to ask another question.',2000);
 }
 
 let lastQAEl=null;
-function addQAMessage(text,original,isLoading){
+function addQAMsg(text,original,isLoading){
   document.getElementById('qaPlaceholder')?.remove();
   const div=document.createElement('div');div.className='qa-msg-out';
   div.innerHTML='<div class="qa-msg-meta">Me → Speaker</div><div class="qa-msg-text">'+esc(text)+'</div>'+(original?'<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:4px;">Original: "'+esc(original)+'"</div>':'');
-  document.getElementById('qaBody').appendChild(div);
-  document.getElementById('qaBody').scrollTop=999999;
-  lastQAEl=div;
+  document.getElementById('qaBody').appendChild(div);document.getElementById('qaBody').scrollTop=999999;lastQAEl=div;
 }
-function updateLastQAMessage(text,original){
-  if(!lastQAEl)return;
-  lastQAEl.querySelector('.qa-msg-text').innerHTML=esc(text);
+function updateLastQAMsg(text,original){
+  if(!lastQAEl)return;lastQAEl.querySelector('.qa-msg-text').innerHTML=esc(text);
   if(original){const o=document.createElement('div');o.style.cssText='font-size:11px;color:var(--muted);font-style:italic;margin-top:4px;';o.textContent='Original: "'+original+'"';lastQAEl.appendChild(o);}
 }
 
