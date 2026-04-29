@@ -255,8 +255,13 @@ function copyLink(btn) {
 }
 
 // ── Speech recognition ────────────────────────────────────────────────────────
-let recognition = null, isRecording = false, finalTranscript = '';
-let broadcastDebounce = null, lastBroadcast = '';
+// accumulatedFinal: persists across stop/start cycles so the audience
+// never sees old text retranslated when the speaker pauses and resumes.
+let recognition = null, isRecording = false;
+let sessionFinal = '';        // final text from current recording session
+let accumulatedFinal = '';    // all confirmed final text across ALL sessions
+let lastBroadcastedFinal = ''; // last final text we actually sent
+let broadcastDebounce = null;
 
 function toggleRecording() { isRecording ? stopRecording() : startRecording(); }
 
@@ -267,6 +272,8 @@ function startRecording() {
   recognition.lang = document.getElementById('sourceLang').value;
   recognition.continuous = true;
   recognition.interimResults = true;
+  sessionFinal = ''; // reset only the current session portion
+
   recognition.onstart = () => {
     isRecording = true;
     document.getElementById('micBtn').className = 'mic-btn recording';
@@ -276,28 +283,41 @@ function startRecording() {
     document.getElementById('waveformWrap').style.display = 'block';
     broadcast({ type: 'config', sourceLang: document.getElementById('sourceLang').value });
   };
+
   recognition.onresult = (e) => {
-    let interim = ''; finalTranscript = '';
+    let interim = ''; sessionFinal = '';
     for (let i = 0; i < e.results.length; i++) {
-      if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript;
+      if (e.results[i].isFinal) sessionFinal += e.results[i][0].transcript;
       else interim += e.results[i][0].transcript;
     }
-    updateTranscript(finalTranscript, interim);
-    const payload = {
-      type: 'transcript',
-      final: finalTranscript.trim(),
-      interim: interim.trim(),
-      text: (finalTranscript + (interim ? ' ' + interim : '')).trim(),
-      sourceLang: document.getElementById('sourceLang').value,
-      ts: Date.now()
-    };
-    const key = payload.text;
-    if (key === lastBroadcast) return;
+
+    // Full transcript = everything said so far across all sessions
+    const fullFinal = (accumulatedFinal + ' ' + sessionFinal).trim();
+    updateTranscript(fullFinal, interim);
+
+    // Only broadcast the NEW final portion not yet sent
+    const newFinalOnly = sessionFinal.slice(
+      Math.max(0, lastBroadcastedFinal.length - accumulatedFinal.length)
+    ).trim();
+
+    const interimTrimmed = interim.trim();
+    if (!newFinalOnly && !interimTrimmed) return;
+
     clearTimeout(broadcastDebounce);
-    // WebRTC: 80ms debounce (fast). ntfy: 600ms (avoid rate limits)
     const delay = useWebRTC ? 80 : 600;
-    broadcastDebounce = setTimeout(() => { lastBroadcast = key; broadcast(payload); }, delay);
+    broadcastDebounce = setTimeout(() => {
+      if (newFinalOnly) lastBroadcastedFinal = fullFinal;
+      broadcast({
+        type: 'transcript',
+        // Send only the delta — new words the audience hasn't seen
+        final: newFinalOnly,
+        interim: interimTrimmed,
+        sourceLang: document.getElementById('sourceLang').value,
+        ts: Date.now()
+      });
+    }, delay);
   };
+
   recognition.onerror = (e) => { if (e.error !== 'no-speech') console.error(e.error); };
   recognition.onend = () => { if (isRecording) try { recognition.start(); } catch(e) {} };
   recognition.start();
@@ -306,14 +326,14 @@ function startRecording() {
 function stopRecording() {
   isRecording = false;
   if (recognition) recognition.stop();
+  // Accumulate confirmed text so next session continues from here
+  accumulatedFinal = (accumulatedFinal + ' ' + sessionFinal).trim();
+  sessionFinal = '';
   document.getElementById('micBtn').className = 'mic-btn';
   document.getElementById('micBtn').innerHTML = '⏺ START SPEAKING';
   document.getElementById('liveDot').classList.remove('live');
   document.getElementById('statusText').textContent = 'STANDBY';
   document.getElementById('waveformWrap').style.display = 'none';
-  if (finalTranscript.trim()) {
-    broadcast({ type: 'transcript', final: finalTranscript.trim(), interim: '', text: finalTranscript.trim(), sourceLang: document.getElementById('sourceLang').value, ts: Date.now(), flush: true });
-  }
 }
 
 function updateTranscript(final, interim) {
